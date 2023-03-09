@@ -1,0 +1,1 @@
+.\LogGenerator.ps1 -Log "sample_access.log" -Type "API" -Table "<table>" -DcrImmutableId "<dc_immutableid>" -DceUri "<dce_uri>"

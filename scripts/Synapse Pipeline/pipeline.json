@@ -1,0 +1,94 @@
+{
+    "name": "Send_log_to_monitor",
+    "properties": {
+        "activities": [
+            {
+                "name": "Generate_token",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": "https://login.microsoftonline.com/<tenant_id>/oauth2/token",
+                    "connectVia": {
+                        "referenceName": "AutoResolveIntegrationRuntime",
+                        "type": "IntegrationRuntimeReference"
+                    },
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    "body": "grant_type=client_credentials&client_id=<app_id>&client_secret=<app_secret>&resource=https://monitor.azure.com",
+                    "authentication": {
+                        "type": "ServicePrincipal",
+                        "userTenant": "<tenant_id>",
+                        "username": "<app_id>",
+                        "resource": "https://monitor.azure.com",
+                        "password": {
+                            "type": "AzureKeyVaultSecret",
+                            "store": {
+                                "referenceName": "ls_kvdemoaml",
+                                "type": "LinkedServiceReference"
+                            },
+                            "secretName": "spmonitor"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Send_log_to_monitor",
+                "type": "WebActivity",
+                "dependsOn": [
+                    {
+                        "activity": "Generate_token",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": "<dce_uri>/dataCollectionRules/<dcr_immutableid>/streams/Custom-<table>?api-version=2021-11-01-preview",
+                    "connectVia": {
+                        "referenceName": "AutoResolveIntegrationRuntime",
+                        "type": "IntegrationRuntimeReference"
+                    },
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": {
+                            "value": "@concat('Bearer ',activity('Generate_token').output.access_token)",
+                            "type": "Expression"
+                        }
+                    },
+                    "body": [
+                        {
+                            "Time": "2023-03-08T04:01:07.7289668Z",
+                            "Application": "Synapse Pipeline",
+                            "RawData": "0.0.153.185 - - [19/Dec/2020:14:08:08 +0100] \"GET /favicon.ico HTTP/1.1\" 404 217 \"http://www.almhuette-raith.at/apache-log/access.log\" \"Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36\" \"-\""
+                        }
+                    ]
+                }
+            }
+        ],
+        "variables": {
+            "token": {
+                "type": "String"
+            }
+        },
+        "annotations": []
+    }
+}
